@@ -72,9 +72,7 @@ def test_set_sensor_name(get_sensor_info, set_sensor_name):
     assert sensor_info_after_rename.get("name") == updated_name
 
 
-def test_set_sensor_reading_interval(
-    get_sensor_info, set_sensor_reading_interval, get_sensor_reading
-):
+def test_set_sensor_reading_interval(get_sensor_info, set_sensor_reading_interval, get_sensor_reading):
     """
     1. Set sensor reading interval to 1.
     2. Get sensor info.
@@ -110,7 +108,6 @@ def test_set_sensor_reading_interval(
     assert first_sensor_reading_with_new_interval != second_sensor_reading_with_new_interval
 
 
-
 # Максимальна версія прошивки сенсора -- 15
 def test_update_sensor_firmware(get_sensor_info, update_sensor_firmware):
     """
@@ -125,6 +122,7 @@ def test_update_sensor_firmware(get_sensor_info, update_sensor_firmware):
     9. Validate that sensor doesn't update and responds appropriately.
     10. Validate that sensor firmware version doesn't change if it's at maximum value.
     """
+    
     log.info("1. Get original sensor firmware version")
     sensor_original_firmware_version = get_sensor_info()
 
