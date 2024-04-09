@@ -46,10 +46,10 @@ class SensorInfo:
         
 
         if not isinstance(self.reading_interval, int):
-            raise TypeError("'reading_interval' should an int")
+            raise TypeError("'reading_interval' should be an int")
         
         if not 1 <= self.reading_interval:
-            raise ValueError("'reading_interval' should a positive integer greater than 1")
+            raise ValueError("'reading_interval' should be a positive integer greater than 1")
 
 
 class SensorMethod(Enum):
