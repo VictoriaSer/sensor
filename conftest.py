@@ -41,15 +41,15 @@ class SensorInfo:
         if not isinstance(self.firmware_version, int):
             raise TypeError("'firmware_version' should be integer")
         
-        if self.firmware_version == "":
-            raise ValueError("'firmware_version' should not be empty")
+        if not 10 <= self.firmware_version <= 15:
+            raise ValueError("'firmware_version' is out of specified limits")
         
 
         if not isinstance(self.reading_interval, int):
-            raise TypeError("'reading_interval' should be float")
+            raise TypeError("'reading_interval' should an int")
         
-        if self.reading_interval == "":
-            raise ValueError("'reading_interval' should not be empty")
+        if not 1 <= self.reading_interval:
+            raise ValueError("'reading_interval' should a positive integer greater than 1")
 
 
 class SensorMethod(Enum):
