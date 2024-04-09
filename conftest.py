@@ -1,4 +1,6 @@
+
 from time import sleep
+from dataclasses import dataclass
 import pytest
 from enum import Enum
 import requests
@@ -6,6 +8,50 @@ from typing import Callable
 import logging
 
 log = logging.getLogger(__name__)
+
+@dataclass
+class SensorInfo:
+    name: str
+    hid: str
+    model: str
+    firmware_version: int
+    reading_interval: float
+
+    def __post_init__(self):
+        if not isinstance(self.name, str):
+            raise TypeError("'name' should be a string")
+        
+        if self.name == "":
+            raise ValueError("'name' should not be empty")
+        
+
+        if not isinstance(self.hid, str):
+            raise TypeError("'hid' should be a string")
+        
+        if self.hid == "":
+            raise ValueError("'hid' should not be empty")
+        
+
+        if not isinstance(self.model, str):
+            raise TypeError("'model' should be a string")
+        
+        if self.model == "":
+            raise ValueError("'model' should not be empty")
+        
+
+        if not isinstance(self.firmware_version, int):
+            raise TypeError("'firmware_version' should be integer")
+        
+        if not 10 <= self.firmware_version <= 15:
+            raise ValueError("'firmware_version' is out of specified limits")
+        
+
+        if not isinstance(self.reading_interval, int):
+            raise TypeError("'reading_interval' should be an int")
+        
+        if not 1 <= self.reading_interval:
+            raise ValueError("'reading_interval' should a positive integer greater than 1")
+
 
 class SensorMethod(Enum):
     GET_INFO = "get_info"
@@ -25,6 +71,7 @@ def make_valid_payload(method: SensorMethod, params: dict | None = None) -> dict
         payload["params"] = params
 
     return payload
+
 
 def wait(func: Callable,  condition: Callable, tries: int, timeout: int, **kwargs):
     for i in range(tries):
@@ -56,6 +103,7 @@ def pytest_addoption(parser):
         "--sensor-pin", action="store", default="0000", help="Sensor pin"
     )
 
+
 @pytest.fixture(scope="session")
 def sensor_host (request):
     return request.config.getoption("--sensor-host")
@@ -67,6 +115,7 @@ def sensor_port (request):
 @pytest.fixture(scope="session")
 def sensor_pin (request):
     return request.config.getoption("--sensor-pin")
+
 
 @pytest.fixture(scope="session")
 def send_post(sensor_host, sensor_port, sensor_pin):
@@ -92,6 +141,7 @@ def send_post(sensor_host, sensor_port, sensor_pin):
     
     return _send_post
 
+
 @pytest.fixture(scope="session")
 def make_valid_request(send_post):
     def _make_valid_request(method: SensorMethod, params: dict | None = None) -> dict:
@@ -101,13 +151,17 @@ def make_valid_request(send_post):
     
     return _make_valid_request
 
+
 @pytest.fixture(scope="session")
 def get_sensor_info(make_valid_request):
     def _get_sensor_info():
         log.info("Get sensor info")
-        return make_valid_request(SensorMethod.GET_INFO)
+        sensor_response = make_valid_request(SensorMethod.GET_INFO)
+        sensor_info = SensorInfo(**sensor_response)
+        return sensor_info
     
     return _get_sensor_info
+
 
 @pytest.fixture(scope="session")
 def get_sensor_reading(make_valid_request):
@@ -117,6 +171,7 @@ def get_sensor_reading(make_valid_request):
     
     return _get_sensor_reading
 
+
 @pytest.fixture(scope="session")
 def get_sensor_methods(make_valid_request):
     def _get_sensor_methods():
@@ -124,6 +179,7 @@ def get_sensor_methods(make_valid_request):
         return make_valid_request(SensorMethod.GET_METHODS)
     
     return _get_sensor_methods
+
 
 @pytest.fixture(scope="session")
 def set_sensor_name(make_valid_request):
@@ -133,6 +189,7 @@ def set_sensor_name(make_valid_request):
     
     return _set_sensor_name
 
+
 @pytest.fixture(scope="session")
 def set_sensor_reading_interval(make_valid_request):
     def _set_sensor_reading_interval(interval: int):
@@ -140,6 +197,7 @@ def set_sensor_reading_interval(make_valid_request):
         return make_valid_request(SensorMethod.SET_READING_INTERVAL, {"interval": interval})
     
     return _set_sensor_reading_interval
+
 
 @pytest.fixture(scope="session")
 def reset_to_factory(make_valid_request, get_sensor_info):
@@ -149,13 +207,14 @@ def reset_to_factory(make_valid_request, get_sensor_info):
         if sensor_response !="resetting":
             raise RuntimeError ("Sensor didn't respond to factory reset properly")
         
-        sensor_info = wait(get_sensor_info, lambda x: isinstance (x, dict), tries=15, timeout=1)
+        sensor_info = wait(get_sensor_info, lambda x: isinstance (x, SensorInfo), tries=15, timeout=1)
         if not sensor_info:
             raise RuntimeError("Sensor didn't reset to factory properly")
         
         return sensor_info
     
     return _reset_to_factory
+
 
 @pytest.fixture(scope="session")
 def update_sensor_firmware(make_valid_request):
@@ -165,6 +224,7 @@ def update_sensor_firmware(make_valid_request):
     
     return _update_sensor_firmware
 
+
 @pytest.fixture(scope="session")
 def reboot(make_valid_request):
     def _reboot():
@@ -173,10 +233,12 @@ def reboot(make_valid_request):
     
     return _reboot
 
+
 @pytest.fixture(scope="session")
 def factory_sensor_settings(reset_to_factory):
     log.info("Reset sensor to factory defaults")
     yield reset_to_factory
+
 
 @pytest.fixture(autouse=True)
 def ensure_sensor_factory_settings(factory_sensor_settings, reset_to_factory, get_sensor_info):
