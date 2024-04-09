@@ -20,7 +20,7 @@ def test_sanity(get_sensor_info, get_sensor_reading):
     assert isinstance(sensor_firmware_version, int), "Sensor firmware_version is not an int"
 
     sensor_reading_interval = sensor_info.reading_interval
-    assert isinstance(sensor_reading_interval, int), "Sensor reading_interval is not a float"
+    assert isinstance(sensor_reading_interval, int), "Sensor reading_interval is not an int"
 
     sensor_reading = get_sensor_reading()
     assert isinstance(sensor_reading, float), "Sensor doesn't register a temperature"
