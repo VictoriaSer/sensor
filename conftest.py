@@ -14,7 +14,7 @@ class SensorInfo:
     hid: str
     model: str
     firmware_version: int
-    reading_interval: float
+    reading_interval: int
 
     def __post_init__(self):
         if not isinstance(self.name, str):
