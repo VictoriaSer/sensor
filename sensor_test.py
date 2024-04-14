@@ -193,3 +193,69 @@ def test_update_sensor_firmware(get_sensor_info, update_sensor_firmware):
     if updated_firmware_version == max_firmware_version:
         log.info("Sensor already has maximal firmware version")
 
+def test_set_invalid_sensor_reading_interval(get_sensor_info, set_sensor_reading_interval):
+    """
+    Test Steps:
+        1. Get original sensor reading interval.
+        2. Set interval to < 1
+        3. Validate that sensor responds with an error.
+        4. Get current sensor reading interval.
+        5. Validate that sensor reading interval didn't change.
+    """
+    log.info("1. Get original sensor reading interval")
+    original_sensor_info = get_sensor_info()
+
+    try:
+        new_interval = 0.5
+        log.info(f"2. Set interval to < 1 {new_interval}")
+        set_sensor_reading_interval(new_interval)
+    
+    except ValueError as error:
+        log.info("3. Validate that sensor responds with an error")
+        assert error == "'reading_interval' should be a positive integer greater than 1"
+        
+    log.info("4. Get current sensor reading interval")
+    current_sensor_info = wait(
+            func=get_sensor_info,
+            condition=lambda x: isinstance (x, SensorInfo),
+            tries=15,
+            timeout=1
+    )
+
+    log.info("5. Validate that sensor reading interval didn't change")
+    assert original_sensor_info.reading_interval == current_sensor_info.reading_interval
+    
+
+def test_set_empty_sensor_name(get_sensor_info, set_sensor_name):
+    """
+    Test Steps:
+        1. Get original sensor name.
+        2. Set sensor name to an empty string.
+        3. Validate that sensor responds with an error.
+        4. Get current sensor name.
+        5. Validate that sensor name didn't change.
+    """
+    
+    log.info("1. Get original sensor name")
+    original_sensor_info = get_sensor_info()
+
+    try:
+        updated_name = ""
+        log.info(f"2. Set sensor name to an empty string {updated_name}")
+        set_sensor_name(updated_name)
+    
+    except ValueError as error:
+        log.info("3. Validate that sensor responds with an error")
+        assert error == "'name' should not be empty"
+    
+    log.info("4. Get current sensor name")
+    current_sensor_info = wait(
+            func=get_sensor_info,
+            condition=lambda x: isinstance (x, SensorInfo),
+            tries=15,
+            timeout=1
+    )
+
+    log.info("5. Validate that sensor name didn't change")
+    assert original_sensor_info.name == current_sensor_info.name
+
