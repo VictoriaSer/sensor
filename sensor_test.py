@@ -3,7 +3,20 @@ from conftest import SensorInfo
 import logging
 import pytest
 
+from requests import post
+
 log = logging.getLogger(__name__)
+METHOD_ERROR_CODE = -32000
+METHOD_ERROR_MSG = "Method execution error"
+PARSE_ERROR_CODE = -32700
+PARSE_ERROR_MSG = "Parse error"
+INVALID_REQUEST_CODE = -32600
+INVALID_REQUEST_MSG = "Invalid request"
+METHOD_NOT_FOUND_CODE = -32601
+METHOD_NOT_FOUND_MSG = "Method not found"
+INVALID_PARAMS_CODE = -32602
+INVALID_PARAMS_MSG = "Invalid params"
+
 
 def test_sanity(get_sensor_info, get_sensor_reading):
     sensor_info = get_sensor_info()
@@ -73,7 +86,6 @@ def test_set_sensor_name(get_sensor_info, set_sensor_name):
     log.info("Validate that current sensor name matches the name set in Step 1")
     assert sensor_info_after_rename.name == updated_name
 
-
 def test_set_sensor_reading_interval(get_sensor_info, set_sensor_reading_interval, get_sensor_reading):
     
     """ 
@@ -109,6 +121,7 @@ def test_set_sensor_reading_interval(get_sensor_info, set_sensor_reading_interva
     
     log.info("Validate that reading from Step 4 doesn't equal reading from Step 6")
     assert first_sensor_reading_with_new_interval != second_sensor_reading_with_new_interval
+
 
 
 # Максимальна версія прошивки сенсора -- 15
@@ -195,6 +208,61 @@ def test_update_sensor_firmware(get_sensor_info, update_sensor_firmware):
         log.info("Sensor already has maximal firmware version")
 
 
+@pytest.mark.parametrize(
+        "payload, expected_error_code, expected_error_msg",
+        [
+            (
+                '{"method": "get_methods" "jsonrpc": "2.0", "id": 1}',
+                PARSE_ERROR_CODE,
+                PARSE_ERROR_MSG,
+            ),
+            (
+                '{"method": "get_method", "jsonrpc": "2.0", "id": 1}',
+                METHOD_NOT_FOUND_CODE,
+                METHOD_NOT_FOUND_MSG,
+            ),
+            (
+                '{"method": "set_reading_interval", "params": {"reading_interval": 1}, "jsonrpc": "2.0", "id": 1}',
+                INVALID_PARAMS_CODE,
+                INVALID_PARAMS_MSG
+            ),
+            (
+                '{"method": "set_name", "params": {"name": 1}, "jsonrpc": "2.0", "id": 1}',
+                METHOD_ERROR_CODE,
+                METHOD_ERROR_MSG,
+            ),
+            (
+                '{"method": "get_reading", "jsonrpc": "20", "id": 1}',
+                INVALID_REQUEST_CODE,
+                INVALID_REQUEST_MSG,
+            )
+        ]
+)
+
+def test_sensor_errors(
+    sensor_host, 
+    sensor_port, 
+    sensor_pin, 
+    payload, 
+    expected_error_code, 
+    expected_error_msg):
+    
+    sensor_response = post(
+        f"{sensor_host}:{sensor_port}/rpc", 
+        data=payload, 
+        headers={"authorization": sensor_pin})
+
+    assert (sensor_response.status_code == 200), "Wrong sctatus code from sensor in response to invalid request"
+
+    sensor_response_json = sensor_response.json()
+    assert ("error" in sensor_response_json), "Sensor didn't respond with error to invalid request"
+    
+    error_from_sensor = sensor_response_json["error"]
+    
+    assert (error_from_sensor.get("code") == expected_error_code), "Sensor didn't respond with correct error code"
+    assert (error_from_sensor.get("message") == expected_error_msg), "Sensor didn't respond with correct error message"
+    
+
 def test_set_empty_sensor_name(get_sensor_info, set_sensor_name):
     """
     Test Steps:
@@ -209,16 +277,15 @@ def test_set_empty_sensor_name(get_sensor_info, set_sensor_name):
     original_sensor_info = get_sensor_info().name
 
     log.info("2. Set sensor name to an empty string")
-    sensor_response = set_sensor_name("")
-    
     log.info("3. Validate that sensor responds with an error")
-    assert sensor_response == {}, "No error message to the try of setting an empty sensor name"
-    
-    log.info("4. Get current sensor name")
-    current_sensor_info = get_sensor_info().name
+    sensor_response = set_sensor_name("")
+    assert sensor_response.get("code") and sensor_response.get("message"), "Sensor response doesn't seem to be an error"
+    assert sensor_response.get("code") == METHOD_ERROR_CODE, "Error code doesn't match expected"
+    assert sensor_response.get("message") == METHOD_ERROR_MSG, "Error message doesn't match expected"
 
+    log.info("4. Get current sensor name")
     log.info("5. Validate that sensor name didn't change")
-    assert original_sensor_info == current_sensor_info, "Sensor name was changed, when it should not"
+    assert original_sensor_info == get_sensor_info().name, "Sensor name was changed, when it should not"
 
 
 @pytest.mark.parametrize("invalid_interval", [0.4, -1])
@@ -235,13 +302,14 @@ def test_set_invalid_sensor_reading_interval(get_sensor_info, set_sensor_reading
     original_sensor_info = get_sensor_info().reading_interval
 
     log.info("2. Set interval to < 1")
-    sensor_response = set_sensor_reading_interval(invalid_interval)
-    
     log.info("3. Validate that sensor responds with an error")
-    assert sensor_response == {}, "No error message to the try of setting invalid sensor reading interval"
+    sensor_response = set_sensor_reading_interval(invalid_interval)
+    assert sensor_response.get("code") and sensor_response.get("message"), "Sensor response doesn't seem to be an error"
+    assert sensor_response.get("code") == METHOD_ERROR_CODE, "Error code doesn't match expected"
+    assert sensor_response.get("message") == METHOD_ERROR_MSG, "Error message doesn't match expected"
         
     log.info("4. Get current sensor reading interval")
-    current_sensor_info = get_sensor_info().reading_interval
-
     log.info("5. Validate that sensor reading interval didn't change")
-    assert original_sensor_info == current_sensor_info, "Sensor reading interval was changed but it shouldn't have"
+    assert original_sensor_info == get_sensor_info().reading_interval, "Sensor reading interval changed but it shouldn't have"
+
+    
