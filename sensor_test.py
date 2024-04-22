@@ -311,5 +311,3 @@ def test_set_invalid_sensor_reading_interval(get_sensor_info, set_sensor_reading
     log.info("4. Get current sensor reading interval")
     log.info("5. Validate that sensor reading interval didn't change")
     assert original_sensor_info == get_sensor_info().reading_interval, "Sensor reading interval changed but it shouldn't have"
-
-    
