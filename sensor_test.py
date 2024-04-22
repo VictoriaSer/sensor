@@ -8,6 +8,7 @@ from requests import post
 log = logging.getLogger(__name__)
 METHOD_ERROR_CODE = -32000
 METHOD_ERROR_MSG = "Method execution error"
+<<<<<<< HEAD
 PARSE_ERROR_CODE = -32700
 PARSE_ERROR_MSG = "Parse error"
 INVALID_REQUEST_CODE = -32600
@@ -16,6 +17,8 @@ METHOD_NOT_FOUND_CODE = -32601
 METHOD_NOT_FOUND_MSG = "Method not found"
 INVALID_PARAMS_CODE = -32602
 INVALID_PARAMS_MSG = "Invalid params"
+=======
+>>>>>>> 0bfcc468c529644c789ce88e7278c517b96057ac
 
 
 def test_sanity(get_sensor_info, get_sensor_reading):
@@ -311,5 +314,8 @@ def test_set_invalid_sensor_reading_interval(get_sensor_info, set_sensor_reading
     log.info("4. Get current sensor reading interval")
     log.info("5. Validate that sensor reading interval didn't change")
     assert original_sensor_info == get_sensor_info().reading_interval, "Sensor reading interval changed but it shouldn't have"
+<<<<<<< HEAD
 
     
+=======
+>>>>>>> 0bfcc468c529644c789ce88e7278c517b96057ac
